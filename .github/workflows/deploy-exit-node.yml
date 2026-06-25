@@ -45,6 +45,6 @@ jobs:
             --plan ${{ github.event.inputs.plan }} \
             --os 2075 \
             --auto-backup false \
-            --firewall-group "${{github.event.inputs.firewall-group}}" \
+            --firewall-group "${{ github.event.inputs.firewall-group }}" \
             --label "${{ github.event.inputs.vm_name }}" \
-            --userdata "$(cat /tmp/ignition.json)" \)
+            --userdata "$(cat /tmp/ignition.json)")
