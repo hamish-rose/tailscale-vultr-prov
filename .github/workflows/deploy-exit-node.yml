@@ -31,7 +31,7 @@ jobs:
 
       - name: Inject Tailscale Auth Key
         run: |
-          cp ignition/flatcar-exit-node.json /tmp/ignition.json
+          cp ignition/ignition.json /tmp/ignition.json
           sed -i "s|tskey-auth-PLACEHOLDER|${{ secrets.TS_AUTHKEY }}|g" /tmp/ignition.json
 
       - name: Deploy VM on Vultr Sydney
