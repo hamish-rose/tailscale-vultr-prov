@@ -47,10 +47,4 @@ jobs:
             --auto-backup false \
             --firewall-group "${{github.event.inputs.firewall-group}}" \
             --label "${{ github.event.inputs.vm_name }}" \
-            --userdata "$(cat /tmp/ignition.json)" \
-            --ipv6 true \
-            --json)
-
-          INSTANCE_ID=$(echo "$RESULT" | jq -r '.instance.id')
-          echo "✅ Instance created: $INSTANCE_ID"
-          echo "instance_id=$INSTANCE_ID" >> $GITHUB_OUTPUT
+            --userdata "$(cat /tmp/ignition.json)" \)
