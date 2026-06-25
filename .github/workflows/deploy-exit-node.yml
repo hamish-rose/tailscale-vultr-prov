@@ -1,0 +1,56 @@
+name: Deploy Vultr Exit Node (Sydney)
+
+on:
+  workflow_dispatch:
+    inputs:
+      vm_name:
+        description: 'VM Label'
+        required: true
+        default: 'exit-node-syd'
+      plan:
+        description: 'Vultr Plan'
+        required: true
+        default: 'vhp-1c-1gb'
+      firewall-group:
+        description: 'Firewall group'
+        required: true
+        default: 'dc2658e8-1813-4c8e-a948-10b2f8f880ca'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Install vultr-cli
+        run: |
+          curl -fsSL https://github.com/vultr/vultr-cli/releases/latest/download/vultr-cli_linux_amd64.tar.gz | tar -xz
+          sudo install vultr-cli /usr/local/bin/
+
+      - name: Inject Tailscale Auth Key
+        run: |
+          cp ignition/flatcar-exit-node.json /tmp/ignition.json
+          sed -i "s|tskey-auth-PLACEHOLDER|${{ secrets.TS_AUTHKEY }}|g" /tmp/ignition.json
+
+      - name: Deploy VM on Vultr Sydney
+        env:
+          VULTR_API_KEY: ${{ secrets.VULTR_API_KEY }}
+        run: |
+          echo "🚀 Deploying Flatcar Exit Node in Sydney..."
+
+          RESULT=$(vultr-cli instance create \
+            --region syd \
+            --plan ${{ github.event.inputs.plan }} \
+            --os 2075 \
+            --auto-backup false \
+            --firewall-group "${{github.event.inputs.firewall-group}}" \
+            --label "${{ github.event.inputs.vm_name }}" \
+            --userdata "$(cat /tmp/ignition.json)" \
+            --ipv6 true \
+            --json)
+
+          INSTANCE_ID=$(echo "$RESULT" | jq -r '.instance.id')
+          echo "✅ Instance created: $INSTANCE_ID"
+          echo "instance_id=$INSTANCE_ID" >> $GITHUB_OUTPUT

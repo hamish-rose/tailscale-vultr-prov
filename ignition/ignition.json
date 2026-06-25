@@ -1,0 +1,89 @@
+{
+  "ignition": {
+    "version": "3.3.0"
+  },
+  "passwd": {
+    "users": [
+      {
+        "name": "core",
+        "sshAuthorizedKeys": [
+          "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC44zWjoRZUcYPn+3qv5Vl6by84PzjeHi8Ptow5N9sM7pDZw3g7ub+Qs+r73PgVh1a8Y8sCZlrVQyq5K+vsAfdDU0SwGFmXDNcuEqXWVS8XLAKjdZ+P4G4Dtpw37bnCk6LUy4xU/ykYeXIJQjJ/e3M0Np1uFDoB8t0ep4eWvU9lRpES7DEgIoaL13owRZHHK7ajSlXCR2hLMGNcqg1XSx+nbTZAi7H8q3ZmeavTj8QzybTBfkVD2R2171BaDk/TwjQF21W8B8Mu/aXM/IsJqflSjLj51M3F3U3wX5j/d41zcrJnopF5G7HwlE97IL7ZAAxVBZ5W6rgauQ8C8vuHYksW4Hy+mRb0vEboPP4QPFOe+/HhV9RVuK6e0JGQDfPKlVRHx3ksNsoKIpIH9tiar9SY+BPjPoY1yMeWexEbq2DG6aq1Js2beQBKpiSKqvBzO6MNT40YTSU4QTwwJKeCpqsgB48Ochyp2Iys6NzlQFrFEwY+Sx3fAxmMj4+Ud54BEV8= hamish@LAPTOP-63F3RPNK"
+        ]
+      }
+    ]
+  },
+  "storage": {
+    "directories": [
+      {
+        "path": "/var/lib/pihole/etc-pihole",
+        "mode": 755
+      },
+      {
+        "path": "/var/lib/pihole/etc-dnsmasq.d",
+        "mode": 755
+      }
+    ],
+    "files": [
+          {
+        "path": "/var/lib/iptables/rules-save",
+        "contents": {
+          "compression": "gzip",
+          "source": "data:;base64,H4sICF3rPGoAA3J1bGVzAJ2QUU/CMBDH3/spLuEFjY0EY2J4m2wGEmDLNuKD8aF0N1bo2qXrgnx7O0CZKC8m7cvl7n73//UgErTQEiFlQtacSaRayT3kwuCOSQmmkViT21xIi4aMpotomYI3HgdRCm+D0eCdjF7C+NWL/YtquEx/tZIeeFLqHWBt2UqKusDs3qBkFjPgWinkVmhVE+rBkUTLQ90axrdAKbdu0CIESeo9z6bJJPDv4mDmpYEPdHOCnTFJMoHc6BKY2u8KNAj9XBsomWJrLFHZmw6pAssrx8gqbSwMh38tbI24W/Jc8OPib20glBOUM+4YthA1uGcLhC3uuxAB9mti8BMQfFRScGGPxqG9018k7vIMvKwUCvruc1Z3SW1rC1LaAirdrIvrrAqa7Bzv8aFDvz7SNfKPkaeLjL7R1cGhdmqMC7LSjct3MtpZugE/DiNCxuF8Pk3JJ3nfk/SnAgAA"
+        },
+        "mode": 420
+      },
+      {
+        "overwrite": true,
+        "path": "/etc/flatcar/update.conf",
+        "contents": {
+          "compression": "gzip",
+          "source": "data:;base64,H4sIAAAAAAAAAwtydfL3D4kPDglyDHF1j7QtSk3Kzy/h8vF39g729QzxcIkPgqgI9/Rz8Q8HKnQMCrE1MLIyMMCtyMfVzz3Ew9YwgwsAuicepl8AAAA="
+        },
+        "mode": 272
+      },
+      {
+        "overwrite": true,
+        "path": "/etc/resolv.conf",
+        "mode": 644,
+        "contents": {
+          "source": "data:,nameserver%20127.0.0.1%0Aoptions%20edns0%0A"
+        }
+      }
+    ],
+    "links": [
+      {
+        "overwrite": true,
+        "path": "/etc/localtime",
+        "target": "/usr/share/zoneinfo/NZ"
+      }
+    ]
+  },
+  "systemd": {
+    "units": [
+      {
+        "contents": "[Unit]\nDescription=Tailscale Docker Container\nAfter=docker.service\nRequires=docker.service\n\n[Service]\nExecStart=/usr/bin/docker run \\\n --name tailscale \\\n --rm \\\n --hostname vpn-server \\\n --network host \\\n --label com.centurylinklabs.watchtower.enable=true \\\n -e TS_AUTHKEY=tskey-auth-PLACEHOLDER \\\n -e TS_STATE_DIR=/var/lib/tailscale \\\n -e TS_USERSPACE=false \\\n -e TS_EXTRA_ARGS=\"--advertise-exit-node\" \\\n -e TS_TAILSCALED_EXTRA_ARGS=\"--port=41641 --no-logs-no-support\" \\\n -v tailscale:/var/lib/tailscale \\\n --device=/dev/net/tun:/dev/net/tun \\\n --cap-add=NET_ADMIN \\\n ghcr.io/tailscale/tailscale:latest\nExecStop=/usr/bin/docker stop tailscale\nRestart=always\nRestartSec=5\n\n[Install]\nWantedBy=multi-user.target\n",
+        "enabled": true,
+        "name": "tailscale.service"
+      },
+      {
+        "contents": "[Unit]\nDescription=Pi-hole DNS Ad Blocker\nAfter=docker.service network-online.target tailscale.service iptables-restore.service\nRequires=docker.service\nWants=network-online.target\n\n[Service]\nExecStartPre=/usr/bin/docker rm -f pihole || true\nExecStart=/usr/bin/docker run \\\n --name pihole \\\n --rm \\\n --hostname pihole \\\n --network host \\\n --label com.centurylinklabs.watchtower.enable=true \\\n -e TZ=Pacific/Auckland \\\n -e WEBPASSWORD=ChangeThisToAStrongPassword123! \\\n -e DNSMASQ_LISTENING=ALL \\\n -e FTLCONF_dns_listeningMode=ALL \\\n -e DNS_UPSTREAMS=1.1.1.1;1.0.0.1;9.9.9.9 \\\n -v /var/lib/pihole/etc-pihole:/etc/pihole:Z \\\n -v /var/lib/pihole/etc-dnsmasq.d:/etc/dnsmasq.d:Z \\\n --cap-add=NET_ADMIN \\\n --cap-add=SETFCAP \\\n pihole/pihole:latest\nExecStop=/usr/bin/docker stop pihole\nRestart=always\nRestartSec=10\n\n[Install]\nWantedBy=multi-user.target\n",
+        "enabled": true,
+        "name": "pihole.service"
+      },
+      {
+        "contents": "[Unit]\nDescription=Watchtower Docker Container Auto-Updater\nAfter=docker.service\nRequires=docker.service\n\n[Service]\nExecStart=/usr/bin/docker run \\\n --name watchtower \\\n --rm \\\n --label com.centurylinklabs.watchtower.enable=true \\\n -e WATCHTOWER_LABEL_ENABLE=true \\\n -e WATCHTOWER_CLEANUP=true \\\n -e WATCHTOWER_NO_RESTART=true \\\n -v /var/run/docker.sock:/var/run/docker.sock \\\n ghcr.io/containrrr/watchtower:latest\nExecStop=/usr/bin/docker stop watchtower\nRestart=always\nRestartSec=5\n\n[Install]\nWantedBy=multi-user.target\n",
+        "enabled": true,
+        "name": "watchtower.service"
+      },
+      {
+        "contents": "[Unit]\nDescription=Restore iptables rules\nAfter=network.target\n\n[Service]\nType=oneshot\nExecStart=/sbin/iptables-restore -n /var/lib/iptables/rules-save\nRemainAfterExit=yes\n\n[Install]\nWantedBy=multi-user.target",
+        "enabled": true,
+        "name": "iptables-restore.service"
+      },
+      {
+        "name": "systemd-resolved.service",
+        "mask": true
+      }
+    ]
+  }
+}
